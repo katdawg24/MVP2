@@ -9,7 +9,9 @@
 
 
 from random import randint
+import time
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 import numpy as np
 import pyqtgraph as pg
 from PyQt5.QtCore import pyqtSignal
@@ -18,8 +20,10 @@ from PyQt5.QtGui import QPixmap
 import HistoricalDataWindow
 import SerialWorker
 import DistanceDialog
+import AlertWindow
 import pandas as pd
 import sys
+from datetime import datetime
 
 import TempDialog2
 import TestDataSerialWorker
@@ -187,17 +191,18 @@ class Ui_MainWindow(object):
         self.distance_cutoff = 10000
 
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1300, 798)
+        MainWindow.resize(1400, 800)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
 
         self.depth_display = QtWidgets.QLCDNumber(self.centralwidget)
-        self.depth_display.setGeometry(QtCore.QRect(860, 70, 201, 61))
+        self.depth_display.setGeometry(QtCore.QRect(960, 60, 201, 61))
         self.depth_display.setObjectName("depth_display")
 
         self.motor_speed_display = QtWidgets.QLabel(self.centralwidget)
-        self.motor_speed_display.setGeometry(QtCore.QRect(790, 590, 170, 51))
+        self.motor_speed_display.setGeometry(QtCore.QRect(700, 660, 70, 51))
         self.motor_speed_display.setObjectName("motor_speed_display")
+        self.motor_speed_display.setStyleSheet("border: 2px solid black;")
 
         self.speed_font = QtGui.QFont()
         self.speed_font.setFamily("Cambria")
@@ -207,7 +212,7 @@ class Ui_MainWindow(object):
 
 
         self.motor_speed_slider = QtWidgets.QSlider(self.centralwidget)
-        self.motor_speed_slider.setGeometry(QtCore.QRect(150, 610, 611, 31))
+        self.motor_speed_slider.setGeometry(QtCore.QRect(40, 670, 611, 31))
         self.motor_speed_slider.setOrientation(QtCore.Qt.Horizontal)
         self.motor_speed_slider.setObjectName("motor_speed_slider")
         self.motor_speed_slider.setMinimum(0)
@@ -217,21 +222,21 @@ class Ui_MainWindow(object):
         
         
         self.label = QtWidgets.QLabel(self.centralwidget)
-        self.label.setGeometry(QtCore.QRect(480, 540, 151, 31))
+        self.label.setGeometry(QtCore.QRect(360, 630, 151, 31))
         font = QtGui.QFont()
         font.setFamily("Cambria")
         font.setPointSize(16)
         self.label.setFont(font)
         self.label.setObjectName("label")
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
-        self.label_2.setGeometry(QtCore.QRect(210, 20, 151, 41))
+        self.label_2.setGeometry(QtCore.QRect(250, 10, 151, 41))
         font = QtGui.QFont()
         font.setFamily("Cambria")
         font.setPointSize(16)
         self.label_2.setFont(font)
         self.label_2.setObjectName("label_2")
         self.label_3 = QtWidgets.QLabel(self.centralwidget)
-        self.label_3.setGeometry(QtCore.QRect(790, 20, 71, 41))
+        self.label_3.setGeometry(QtCore.QRect(1020, 10, 100, 41))
         font = QtGui.QFont()
         font.setFamily("Cambria")
         font.setPointSize(16)
@@ -239,34 +244,62 @@ class Ui_MainWindow(object):
         self.label_3.setObjectName("label_3")
 
         self.temp_menu_button = QtWidgets.QPushButton(self.centralwidget)
-        self.temp_menu_button.setGeometry(QtCore.QRect(170, 575, 231, 51))
+        self.temp_menu_button.setGeometry(QtCore.QRect(200, 545, 231, 51))
         self.temp_menu_button.setObjectName("temp_menu_button")
         self.temp_menu_button.clicked.connect(self.openTempMenu2)
 
         self.distance_menu_button = QtWidgets.QPushButton(self.centralwidget)
-        self.distance_menu_button.setGeometry(QtCore.QRect(800, 420, 231, 51))
+        self.distance_menu_button.setGeometry(QtCore.QRect(940, 450, 231, 51))
         self.distance_menu_button.setObjectName("distance_menu_button")
         self.distance_menu_button.clicked.connect(self.openDistanceMenu2)
 
+        font.setPointSize(20)
+
         self.historical_data_button = QtWidgets.QPushButton(self.centralwidget)
-        self.historical_data_button.setGeometry(QtCore.QRect(800, 700, 231, 51))
+        self.historical_data_button.setGeometry(QtCore.QRect(850, 530, 400, 65))
         self.historical_data_button.setObjectName("historical_data_button")
+        self.historical_data_button.setFont(font)
         self.historical_data_button.clicked.connect(self.openHistoricalDataMenu)
 
+        self.calibrate_button = QtWidgets.QPushButton(self.centralwidget)
+        self.calibrate_button.setGeometry(QtCore.QRect(850, 610, 400, 65))
+        self.calibrate_button.setObjectName("calibrate_button")
+        self.calibrate_button.setFont(font)
+        self.calibrate_button.clicked.connect(self.calibrate)
+
+        self.calibration_details = QtWidgets.QLabel(self.centralwidget)
+        self.calibration_details.setGeometry(QtCore.QRect(930, 670, 250, 31))
+        self.calibration_details.setObjectName("calibration_details")
+
+        self.temp_calibration_range = [-999999, 999999]
+        self.distance_calibration_range = [-999999, 999999] 
+        self.temp_range = [999999, -999999]
+        self.distance_range = [999999, -999999]
+        self.calibration_count = 0
+        self.calibration_mode = False
+
+        font.setPointSize(16)
+        self.calibration_details.setFont(self.speed_font)
+
+        font.setPointSize(18)
+
         self.motor_stop_button = QtWidgets.QPushButton(self.centralwidget)
-        self.motor_stop_button.setGeometry(QtCore.QRect(440, 680, 241, 51))
+        self.motor_stop_button.setGeometry(QtCore.QRect(290, 720, 241, 51))
         self.motor_stop_button.setObjectName("motor_stop_button")
+        self.motor_stop_button.setFont(font)
         self.motor_stop_button.clicked.connect(self.stopMotor)
 
         self.close_button = QtWidgets.QPushButton(self.centralwidget)
-        self.close_button.setGeometry(QtCore.QRect(950, 740, 121, 31))
+        self.close_button.setGeometry(QtCore.QRect(1190, 730, 135, 40))
         self.close_button.setObjectName("close_button")
         self.close_button.clicked.connect(self.closeWindow)
         
         self.temp_map_display = QtWidgets.QLabel(self.centralwidget)
-        self.temp_map_display.setGeometry(QtCore.QRect(50, 70, 650, 470))
+        self.temp_map_display.setGeometry(QtCore.QRect(50, 50, 585, 470))
         self.temp_map_display.setObjectName("temp_map_display")
         self.temp_map_display.setFont(font)
+        self.temp_map_display.setStyleSheet("border: 2px solid black;")
+
         self.temp_image = QPixmap("heatmap.png")
         self.scaled_temp_image = self.temp_image.scaled(580, 540, QtCore.Qt.KeepAspectRatio)
         self.temp_map_display.setPixmap(self.scaled_temp_image)
@@ -283,6 +316,7 @@ class Ui_MainWindow(object):
         #self.small_depth_chart.addLegend()
         self.small_depth_chart.showGrid(x=True, y=True)
         self.small_depth_chart.setYRange(3, 12)
+        self.small_depth_chart.setStyleSheet("border: 2px solid black;")
         
         #self.distance = [60 + ((randint(1, 19) - 10) * 0.1) for _ in range(10)]
         self.distance = []
@@ -293,7 +327,7 @@ class Ui_MainWindow(object):
             name="Lidar Sensor",
             pen=pen
         )
-        self.small_depth_chart.setGeometry(QtCore.QRect(800, 160, 461, 241))
+        self.small_depth_chart.setGeometry(QtCore.QRect(800, 140, 510, 291))
         self.small_depth_chart.setObjectName("small_depth_chart")
 
         MainWindow.setCentralWidget(self.centralwidget)
@@ -324,12 +358,13 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.label.setText(_translate("MainWindow", "Motor Speed"))
         self.label_2.setText(_translate("MainWindow", "Temperature"))
-        self.label_3.setText(_translate("MainWindow", "Depth"))
+        self.label_3.setText(_translate("MainWindow", "Distance"))
         self.temp_menu_button.setText(_translate("MainWindow", "Temperature Details"))
         self.distance_menu_button.setText(_translate("MainWindow", "Distance Details"))
         self.motor_stop_button.setText(_translate("MainWindow", "STOP MOTOR"))
         self.close_button.setText(_translate("MainWindow", "Quit"))
         self.historical_data_button.setText(_translate("MainWindow", "Historical Data"))
+        self.calibrate_button.setText(_translate("MainWindow", "Calibrate"))
         
 
     def update_plot(self, data: pd.DataFrame):
@@ -360,23 +395,58 @@ class Ui_MainWindow(object):
         self.temp_map_display.setPixmap(self.scaled_temp_image)
 
         self.df = pd.concat([self.df, data], ignore_index=True)
+ 
+        if (self.calibration_mode):
+            self.calibration_count += 1
+            
+            if (self.calibration_count < 11):
+            
+                min_temp = float(np.min(self.df["Temp"].iloc[-1]))
+                max_temp = float(np.max(self.df["Temp"].iloc[-1]))
+
+                if (min_temp < self.temp_range[0]):
+                    self.temp_range[0] = min_temp
+                if (max_temp > self.temp_range[1]):
+                    self.temp_range[1] = max_temp
+
+                if (float(self.df["Distance"].iloc[-1]) < self.distance_range[0]):
+                    self.distance_range[0] = float(self.df["Distance"].iloc[-1])
+                if (float(self.df["Distance"].iloc[-1]) > self.distance_range[1]):
+                    self.distance_range[1] = float(self.df["Distance"].iloc[-1])
+
+            elif (self.calibration_count == 11):
+
+                distance_buffer = (self.distance_range[1] - self.distance_range[0]) * 0.25
+                temp_buffer = (self.temp_range[1] - self.temp_range[0]) * 0.25
+
+                self.temp_calibration_range = [self.temp_range[0] - temp_buffer, self.temp_range[1] + temp_buffer]
+                self.distance_calibration_range = [self.distance_range[0] - distance_buffer, self.distance_range[1] + distance_buffer]
+
+                self.calibration_details.setText("Calibrated!")
+
+            elif (self.calibration_count > 12):
+
+                self.calibration_details.setText("")
+                self.calibration_count = 0
+                self.calibration_mode = False
+
+                print(self.temp_calibration_range)
+                print(self.distance_calibration_range)
+
+        self.checkCalibrationRange()
+
     
+    def checkCalibrationRange(self):
+        min_temp = float(np.min(self.df["Temp"].iloc[-1]))
+        max_temp = float(np.max(self.df["Temp"].iloc[-1]))
 
-    def checkCutoffValue(self, data):
-        if (float(np.max(data[1])) >= float(self.temp_cutoff)):
-            self.stopMotor()
-        
-        if (float(data[2]) >= float(self.distance_cutoff)):
-            self.stopMotor()
-
-    def getCutoffValues(self):
-        return [self.temp_cutoff, self.distance_cutoff]
-    
-    def setTempCutoffValue(self, value):
-        self.temp_cutoff = float(value)
-
-    def setDistanceCutoffValue(self, value):
-        self.distance_cutoff = float(value)
+        if (min_temp < self.temp_calibration_range[0]):
+            self.alert_window = AlertWindow.Ui_AlertWindow(self, "temp", self.temp_calibration_range, min_temp)
+        elif (max_temp > self.temp_calibration_range[1]):
+            self.alert_window = AlertWindow.Ui_AlertWindow(self, "temp", self.temp_calibration_range, max_temp)
+        elif (float(self.df["Distance"].iloc[-1]) < self.distance_calibration_range[0] or 
+            float(self.df["Distance"].iloc[-1]) > self.distance_calibration_range[1]):
+            self.alert_window = AlertWindow.Ui_AlertWindow(self, "distance", self.distance_calibration_range, float(self.df["Distance"].iloc[-1]))
 
     def update_motor_speed(self, value):
         # Send motor speed value to Arduino
@@ -384,8 +454,18 @@ class Ui_MainWindow(object):
         if self.send_serial_thread:
             speed_data = float(value) / 100
             self.send_serial_thread.send_data(str(round(speed_data, 2)))
-            
 
+    def calibrate(self):
+        self.calibration_details.setText("Calibrating...")
+
+        self.calibration_mode = True
+
+    def manually_calibrate(self, metric, range: list):
+        if (metric == "temp"):
+            self.temp_calibration_range = range
+        elif (metric == "distance"):
+            self.distance_calibration_range = range
+        
     def openTempMenu2(self):
         
         self.temp_window = TempDialog2.Ui_TempDetails(self, self.df)

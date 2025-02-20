@@ -12,7 +12,6 @@ import TempImageGenerator
 
 class Ui_HistoricalData(object):
     
-
     def setupUi(self, HistoricalData, mainWindow):
         self.main_window = mainWindow
         HistoricalData.setObjectName("HistoricalData")
