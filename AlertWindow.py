@@ -1,3 +1,4 @@
+import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import pyqtgraph as pg
@@ -8,11 +9,19 @@ from PyQt5.QtGui import QPixmap
 import MainWindow
 
 class Ui_AlertWindow(object):
+
+    def __init__(self, main_window, metric, range, value):
+        super().__init__()
+        self.AlertWindow = QtWidgets.QDialog()
+        self.setupUi(self.AlertWindow, main_window, metric, range, value)
+        self.AlertWindow.setModal(True)
+        self.AlertWindow.exec_()
     
     def setupUi(self, AlertWindow, mainWindow, metric, range, value):
         self.main_window = mainWindow
         AlertWindow.setObjectName("AlertWindow")
         AlertWindow.resize(600, 300)
+        self.alert_window = AlertWindow
 
         self.metric = metric
         self.range = range
@@ -38,7 +47,7 @@ class Ui_AlertWindow(object):
         font.setPointSize(14)
 
         self.details_text = QtWidgets.QLabel(AlertWindow)
-        self.details_text.setGeometry(QtCore.QRect(20, 20, 450, 300))
+        self.details_text.setGeometry(QtCore.QRect(20, 20, 450, 200))
         self.details_text.setObjectName("details_text")
 
         if (self.value < self.range[0]):
@@ -68,7 +77,7 @@ class Ui_AlertWindow(object):
         self.calibration_off_button.setText(_translate("AlertWindow", "Turn Calibration Off"))
 
     def stopSystem(self):
-        self.AlertWindow.hide()
+        self.alert_window.close()
         return
     
     def adjustRange(self):
@@ -81,18 +90,19 @@ class Ui_AlertWindow(object):
             max_value = self.value + (self.value - self.range[1]) * 0.5
         
         MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, self.metric, [min_value, max_value])
-        self.AlertWindow.hide()
+        self.alert_window.close()
 
     def turnCalibrationOff(self):
         MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, self.metric, [-999999, 999999])
-        self.AlertWindow.hide()
+        self.alert_window.close()
 
     def closeWindow(self):
-        self.AlertWindow.hide()
+        self.alert_window.close()
 
-    def __init__(self, main_window, metric, range, value):
-        super().__init__()
-        self.AlertWindow = QtWidgets.QDialog()
-        self.setupUi(self.AlertWindow, main_window, metric, range, value)
-        
-        self.AlertWindow.show()
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    AlertWindow = QtWidgets.QDialog()
+    emptydf = pd.DataFrame(columns= ["Time", "Temp", "Distance"])
+    ui = Ui_AlertWindow(emptydf)
+
+    sys.exit(app.exec_())

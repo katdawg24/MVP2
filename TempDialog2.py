@@ -120,7 +120,7 @@ class Ui_TempDetails(object):
         TempDetails.setWindowTitle(_translate("TempDetails", "Dialog"))
         self.temp_dialog_close_button.setText(_translate("TempDetails", "Close"))
         self.cutoff_input_button.setText(_translate("TempDetails", "Change Cutoff"))
-        self.cutoff_input.setText(_translate("TempDetails", str(self.main_window.getCutoffValues()[0])))
+        self.cutoff_input.setText(_translate("TempDetails", "0"))
 
 
     def closeWindow(self):
@@ -169,7 +169,5 @@ if __name__ == "__main__":
     TempDetails = QtWidgets.QDialog()
     emptydf = pd.DataFrame(columns= ["Time", "Temp", "Distance"])
     ui = Ui_TempDetails(emptydf)
-    
-
 
     sys.exit(app.exec_())

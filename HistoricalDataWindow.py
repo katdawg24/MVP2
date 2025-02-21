@@ -25,8 +25,8 @@ class Ui_HistoricalData(object):
         self.tableView = QtWidgets.QTableWidget(HistoricalData)
         self.tableView.setGeometry(QtCore.QRect(100, 50, 800, 400))
         self.tableView.setObjectName("data_table")
-        self.tableView.setColumnCount(6)
-        self.tableView.setHorizontalHeaderLabels(["Date", "Time", "Distance(cm)", "Max Temp (C)", "Avg Temp (C)", "Details"])
+        self.tableView.setColumnCount(7)
+        self.tableView.setHorizontalHeaderLabels(["ID", "Date", "Time", "Distance(cm)", "Max Temp (C)", "Avg Temp (C)", "Details"])
 
         self.initialize_table()
 
@@ -64,6 +64,7 @@ class Ui_HistoricalData(object):
         
         # Fetch all readings
         query = self.db.query(
+            readings_table.c.id,
             readings_table.c.time, 
             readings_table.c.distance, 
             readings_table.c.max_temp, 
@@ -71,38 +72,32 @@ class Ui_HistoricalData(object):
         ).all()
 
         # Convert the results into a DataFrame
-        df = pd.DataFrame(query, columns=["datetime", "distance", "max_temp", "avg_temp"])
+        df = pd.DataFrame(query, columns=["id", "datetime", "distance", "max_temp", "avg_temp"])
 
         # Split "datetime" column into "date" and "time"
         df["date"] = df["datetime"].dt.date
         df["time"] = df["datetime"].dt.time
 
         # Reorder columns to match your request
-        df = df[["date", "time", "distance", "max_temp", "avg_temp"]]
+        df = df[["id", "date", "time", "distance", "max_temp", "avg_temp"]]
 
         for index, row in df.iterrows():
             self.tableView.setRowCount(self.tableView.rowCount() + 1)
-            self.tableView.setItem(self.tableView.rowCount() - 1, 0, QtWidgets.QTableWidgetItem(str(row['date'])))
-            self.tableView.setItem(self.tableView.rowCount() - 1, 1, QtWidgets.QTableWidgetItem(str(row['time'])))
-            self.tableView.setItem(self.tableView.rowCount() - 1, 2, QtWidgets.QTableWidgetItem(str(row['distance'])))
-            self.tableView.setItem(self.tableView.rowCount() - 1, 3, QtWidgets.QTableWidgetItem(str(row['max_temp'])))
-            self.tableView.setItem(self.tableView.rowCount() - 1, 4, QtWidgets.QTableWidgetItem(str(row['avg_temp'])))
+            self.tableView.setItem(self.tableView.rowCount() - 1, 0, QtWidgets.QTableWidgetItem(str(row['id'])))
+            self.tableView.setItem(self.tableView.rowCount() - 1, 1, QtWidgets.QTableWidgetItem(str(row['date'])))
+            self.tableView.setItem(self.tableView.rowCount() - 1, 2, QtWidgets.QTableWidgetItem(str(row['time'])))
+            self.tableView.setItem(self.tableView.rowCount() - 1, 3, QtWidgets.QTableWidgetItem(str(row['distance'])))
+            self.tableView.setItem(self.tableView.rowCount() - 1, 4, QtWidgets.QTableWidgetItem(str(row['max_temp'])))
+            self.tableView.setItem(self.tableView.rowCount() - 1, 5, QtWidgets.QTableWidgetItem(str(row['avg_temp'])))
             btn = QtWidgets.QPushButton("Temp Details")
             btn.clicked.connect(lambda _, r=row: self.on_button_click(r))  # Capture row index
-            self.tableView.setCellWidget(self.tableView.rowCount() - 1, 5, btn)  # Add button to the last column
+            self.tableView.setCellWidget(self.tableView.rowCount() - 1, 6, btn)  # Add button to the last column
 
     def on_button_click(self, row):
-        # Extract the date and time from the row
-        date = row['date']
-        time = row['time']
+        # Extract the id from the row
+        id = row["id"]
 
-        # Convert to datetime object for querying
-        datetime_str = f"{date} {time}"
-        datetime_obj = pd.to_datetime(datetime_str)
-
-        id_query = self.db.query(readings_table).filter(readings_table.c.time == datetime_obj).scalar()
-        # Fetch the corresponding temp_arrays data
-        array_query = self.db.query(temp_arrays_table).filter(temp_arrays_table.c.reading_id == id_query).all()
+        array_query = self.db.query(temp_arrays_table).filter(temp_arrays_table.c.reading_id == id).all()
 
         # Convert to DataFrame
         self.temp_df = pd.DataFrame(array_query, columns=["row_index"] + [f"column_{i}" for i in range(1, 33)] + ["array_id", "reading_id"])

@@ -4,6 +4,8 @@ import pandas as pd
 
 import TestDataSerialWorker
 import GetDataSerialWorker
+import TempSerialWorker
+import DistanceSerialWorker
 
 class Main(object):
     
@@ -26,11 +28,12 @@ class Main(object):
     ## for testing without serial connection
     def setUpTest(self):
         
-
-        self.receive_serial_thread = TestDataSerialWorker.TestDataSerialWorker()
+        temp_serial_worker = TempSerialWorker.TempSerialWorker()
+        distance_serial_worker = DistanceSerialWorker.DistanceSerialWorker()
+        #self.receive_serial_thread = TestDataSerialWorker.TestDataSerialWorker()
         #self.receive_serial_thread = GetDataSerialWorker.GetDataSerialWorker()
 
-        self.main_window = MainWindow.Ui_MainWindow(self.receive_serial_thread)
+        self.main_window = MainWindow.Ui_MainWindow(temp_serial_worker, distance_serial_worker)
         
 
 if __name__ == "__main__":
