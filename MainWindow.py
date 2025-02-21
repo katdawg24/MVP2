@@ -105,6 +105,12 @@ class Ui_MainWindow(object):
         self.close_button.setObjectName("close_button")
         self.close_button.clicked.connect(self.closeWindow)
         
+        self.calibration_button = QtWidgets.QPushButton(self.centralwidget)
+        self.calibration_button.setGeometry(QtCore.QRect(50, 740, 121, 31))
+        self.calibration_button.setObjectName("calibration_button")
+        self.calibration_button.setText("Calibrate")
+        self.calibration_button.clicked.connect(self.calibrate)
+
 
         self.small_temp_chart = pg.PlotWidget(self.centralwidget)
         self.small_temp_chart.setBackground("w")
@@ -165,7 +171,13 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.df = pd.DataFrame(columns= ["Time", "Temp", "Distance"])
-        
+
+        self.calibrated = False
+        self.calibration_temp = None
+        self.calibration_distance = None
+        # Set tolerances
+        self.calibration_temp_tolerance = 2.5   # 2.5°C difference
+        self.calibration_distance_tolerance = 2.0  # 2 cm        
 
         self.receive_serial_thread = receiveSerialThread
         self.receive_serial_thread.start()
@@ -258,6 +270,13 @@ class Ui_MainWindow(object):
         self.motor_stop_button.setObjectName("motor_stop_button")
         self.motor_stop_button.clicked.connect(self.stopMotor)
 
+
+        self.calibration_button = QtWidgets.QPushButton(self.centralwidget)
+        self.calibration_button.setGeometry(QtCore.QRect(50, 740, 121, 31))
+        self.calibration_button.setObjectName("calibration_button")
+        self.calibration_button.setText("Calibrate")
+        self.calibration_button.clicked.connect(self.calibrate)
+
         self.close_button = QtWidgets.QPushButton(self.centralwidget)
         self.close_button.setGeometry(QtCore.QRect(950, 740, 121, 31))
         self.close_button.setObjectName("close_button")
@@ -304,6 +323,13 @@ class Ui_MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+
+        self.calibrated = False
+        self.calibration_temp = None
+        self.calibration_distance = None
+        # Set tolerances
+        self.calibration_temp_tolerance = 2.5   # 2.5°C difference
+        self.calibration_distance_tolerance = 2.0  # 2 cm
 
         self.df = pd.DataFrame(columns= ["Time", "Temp", "Distance", "Max Temp", "Avg Temp", "Temp 1", "Temp 2", "Temp 3", "Temp 4", "Temp 5", "Temp 6", "Temp 7"])
 
@@ -361,6 +387,8 @@ class Ui_MainWindow(object):
 
         self.df = pd.concat([self.df, data], ignore_index=True)
     
+        # Check against calibration values if set:
+        self.checkCalibration(data)
 
     def checkCutoffValue(self, data):
         if (float(np.max(data[1])) >= float(self.temp_cutoff)):
@@ -400,6 +428,40 @@ class Ui_MainWindow(object):
             self.distance_window = DistanceDialog.Ui_DistanceDetails(self.df)
             self.receive_serial_thread.data_received.connect(self.distance_window.update_data)
     
+    def calibrate(self):
+    # Check if there's at least one reading in the dataframe
+    if not self.df.empty:
+        last_row = self.df.iloc[-1]
+        self.calibration_temp = last_row["Temp"]
+        self.calibration_distance = last_row["Distance"]
+        self.calibrated = True
+        QtWidgets.QMessageBox.information(self.MainWindow, "Calibration", "Calibration set:\n"
+                                            f"Temp: {self.calibration_temp}\nDistance: {self.calibration_distance}")
+    else:
+        QtWidgets.QMessageBox.warning(self.MainWindow, "Calibration", "No data available to calibrate.")
+
+
+    def checkCalibration(self, data: pd.DataFrame):
+        if self.calibrated:
+            # Retrieve the latest values
+            current_temp = data["Temp"].iloc[-1]
+            current_distance = data["Distance"].iloc[-1]
+
+            temp_deviation = abs(current_temp - self.calibration_temp)
+            distance_deviation = abs(current_distance - self.calibration_distance)
+
+            if (temp_deviation > self.calibration_temp_tolerance) or (distance_deviation > self.calibration_distance_tolerance):
+                # Show warning dialog with "stop system" button
+                reply = QtWidgets.QMessageBox.question(
+                    self.MainWindow,
+                    "Warning",
+                    ("Sensor readings have deviated from the calibration baseline.\n"
+                     f"Temp deviation: {temp_deviation:.1f}°C, Distance deviation: {distance_deviation:.1f}\n"
+                     "Do you want to stop the system?"),
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+                )
+                if reply == QtWidgets.QMessageBox.Yes:
+                    self.stopMotor()  # Call stop routine
 
     def closeEvent(self, event):
         self.serial_thread.stop()
