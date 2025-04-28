@@ -20,7 +20,6 @@ from PyQt5.QtGui import QPixmap
 
 
 class Ui_TempDetails(object):
-    
 
     def setupUi(self, TempDetails, mainWindow, df: pd.DataFrame):
         self.main_window = mainWindow
@@ -30,7 +29,7 @@ class Ui_TempDetails(object):
         self.df = df
 
         self.temp_dialog_close_button = QtWidgets.QPushButton(TempDetails)
-        self.temp_dialog_close_button.setGeometry(QtCore.QRect(1000, 700, 121, 31))
+        self.temp_dialog_close_button.setGeometry(QtCore.QRect(1000, 750, 121, 31))
         self.temp_dialog_close_button.setObjectName("temp_dialog_close_button")
         self.temp_dialog_close_button.clicked.connect(self.closeWindow)
 
@@ -41,7 +40,7 @@ class Ui_TempDetails(object):
 
         self.cutoff_input = QtWidgets.QLineEdit(TempDetails)
         self.cutoff_input.setValidator(QtGui.QDoubleValidator(0.0,99.99,2))
-        self.cutoff_input.setText("35.00")
+        self.cutoff_input.setText(str(self.main_window.temp_cutoff))
         self.cutoff_input.setGeometry(QtCore.QRect(70, 720, 250, 50))
         self.cutoff_input.setObjectName("cutoff_input")
         
@@ -51,40 +50,22 @@ class Ui_TempDetails(object):
         self.cutoff_input_button.clicked.connect(self.new_cutoff_value)
 
         self.tableView = QtWidgets.QTableWidget(TempDetails)
-        self.tableView.setGeometry(QtCore.QRect(770, 20, 340, 340))
+        self.tableView.setGeometry(QtCore.QRect(700, 320, 410, 340))
         self.tableView.setObjectName("temp_table")
         self.last_time = 0
         self.tableView.setColumnCount(3)
         self.tableView.setHorizontalHeaderLabels(["Time (s)", "Max Temp (C)", "Avg Temp (C)"])
-        # Create a model for the table
-        # self.table_model = QStandardItemModel()
-        # self.table_model.setHorizontalHeaderLabels(["Time", "Temperature"])
-        # self.tableView.setModel(self.table_model)
-
-        # self.detailed_temp_chart = pg.PlotWidget(TempDetails)
-        # self.detailed_temp_chart.setBackground("w")
-        # pen = pg.mkPen(color=(255,0,0))
-        # self.detailed_temp_chart.setTitle("Temperature vs Time", color="k", size="15pt")
-        # styles = {"color": "red", "font-size": "10px"}
-        # self.detailed_temp_chart.setLabel("left", "Temperature (°C)", **styles)
-        # self.detailed_temp_chart.setLabel("bottom", "Time (min)", **styles)
-        # #self.detailed_temp_chart.addLegend()
-        # self.detailed_temp_chart.showGrid(x=True, y=True)
-        # self.detailed_temp_chart.setYRange(24, 32)
-        # # self.detailed_temp_chart = QtWidgets.QScrollArea(TempDetails)
-        # self.detailed_temp_chart.setGeometry(QtCore.QRect(20, 20, 720, 380))
-        # self.detailed_temp_chart.setObjectName("detailed_temp_chart")
 
         self.temp_bar_chart = pg.PlotWidget(TempDetails)
         self.bar_chart = pg.BarGraphItem(x=range(1, 8), height=[30,30,30,30,30,30,30], width=0.5, brush="r")
         
         self.temp_bar_chart.addItem(self.bar_chart)
-        self.temp_bar_chart.setGeometry(QtCore.QRect(20, 20, 720, 280))
+        self.temp_bar_chart.setGeometry(QtCore.QRect(150, 20, 750, 280))
         self.temp_bar_chart.setObjectName("temp_bar_chart")
         styles = {"color": "black", "font-size": "10px"}
         self.temp_bar_chart.setLabel("left", "Temperature (°C)", **styles)
         self.temp_bar_chart.setBackground("w")
-        self.temp_bar_chart.setYRange(28,32)
+        self.temp_bar_chart.setYRange(25,35)
 
         self.temp_map_display = QtWidgets.QLabel(TempDetails)
         self.temp_map_display.setGeometry(QtCore.QRect(50, 320, 550, 380))
@@ -92,25 +73,10 @@ class Ui_TempDetails(object):
         self.temp_image = QPixmap("heatmap.png")
         self.scaled_temp_image = self.temp_image.scaled(550, 400, QtCore.Qt.KeepAspectRatio)
         self.temp_map_display.setPixmap(self.scaled_temp_image)
-        
-        # self.time = df['Time'].tolist()
-        # self.temperature = df['Temp'].tolist()
-        
-        # self.temp_line = self.detailed_temp_chart.plot(
-        #     self.time,
-        #     self.temperature,
-        #     name="Temperature Sensor",
-        #     pen=pen
-        # )
 
         for index, row in self.df.iterrows():
             time = row["Time"].split(' ')[-1]
             self.update_table_data(time, round(row["Max Temp"], 2), round(row["Avg Temp"], 2))
-
-        # self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        # self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 699, 349))
-        # self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
-        # self.detailed_temp_chart.setWidget(self.scrollAreaWidgetContents)
 
         self.retranslateUi(TempDetails)
         QtCore.QMetaObject.connectSlotsByName(TempDetails)

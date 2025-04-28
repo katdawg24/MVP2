@@ -15,18 +15,20 @@ class Ui_HistoricalData(object):
     def setupUi(self, HistoricalData, mainWindow):
         self.main_window = mainWindow
         HistoricalData.setObjectName("HistoricalData")
-        HistoricalData.resize(1150, 800)
+        HistoricalData.resize(1050, 800)
 
         self.historical_data_close_button = QtWidgets.QPushButton(HistoricalData)
-        self.historical_data_close_button.setGeometry(QtCore.QRect(1000, 700, 121, 31))
+        self.historical_data_close_button.setGeometry(QtCore.QRect(900, 700, 121, 31))
         self.historical_data_close_button.setObjectName("historical_data_close_button")
         self.historical_data_close_button.clicked.connect(self.closeWindow)
 
         self.tableView = QtWidgets.QTableWidget(HistoricalData)
-        self.tableView.setGeometry(QtCore.QRect(100, 50, 800, 400))
+        self.tableView.setGeometry(QtCore.QRect(80, 20, 940, 400))
         self.tableView.setObjectName("data_table")
         self.tableView.setColumnCount(7)
         self.tableView.setHorizontalHeaderLabels(["ID", "Date", "Time", "Distance(cm)", "Max Temp (C)", "Avg Temp (C)", "Details"])
+        self.tableView.verticalHeader().setVisible(False)
+
 
         self.initialize_table()
 
@@ -35,9 +37,10 @@ class Ui_HistoricalData(object):
         font.setPointSize(16)
 
         self.temp_map_display = QtWidgets.QLabel(HistoricalData)
-        self.temp_map_display.setGeometry(QtCore.QRect(50, 500, 325, 275))
+        self.temp_map_display.setGeometry(QtCore.QRect(120, 450, 400, 320))
         self.temp_map_display.setObjectName("temp_map_display")
         self.temp_map_display.setFont(font)
+        self.temp_map_display.setStyleSheet("border: 1px solid black;")
         
 
         self.retranslateUi(HistoricalData)
@@ -107,7 +110,7 @@ class Ui_HistoricalData(object):
 
         TempImageGenerator.generate_heatmap(array_2d, "ImageForHistoricalData.png")
         self.temp_image = QPixmap("ImageForHistoricalData.png")
-        self.scaled_temp_image = self.temp_image.scaled(300, 300, QtCore.Qt.KeepAspectRatio)
+        self.scaled_temp_image = self.temp_image.scaled(400, 450, QtCore.Qt.KeepAspectRatio)
         self.temp_map_display.setPixmap(self.scaled_temp_image)
 
 

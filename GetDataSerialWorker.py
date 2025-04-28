@@ -17,11 +17,11 @@ from sqlalchemy.orm import sessionmaker
 class GetDataSerialWorker(QThread):
     data_received = pyqtSignal(pd.DataFrame)  # Signal to send data to the GUI
 
-    def __init__(self):
+    def __init__(self, teensy_port):
         super().__init__()
         self.running = True
-        self.port = "COM4"
-        self.baudrate = 115200
+        self.port = teensy_port
+        self.baudrate = 19200
         
         self.db = next(get_db())
     
@@ -83,18 +83,40 @@ class GetDataSerialWorker(QThread):
 
         line = ''
         temp_array = []
+        is_distance_next = False
+        distance_mm = 0
 
         try:
-        
-            while line != 'done':
+            # Wait for first reading
+            while line != '' or not(is_distance_next):
                 if ser.in_waiting > 0:
                     line = ser.readline().decode('utf-8').strip()
 
-            if ser.in_waiting > 0:
-                line = ser.readline().decode('utf-8').strip()
+                #If the line is lond, we know that we're in the middle of a temp reading
+                if len(line) > 4:
+                    is_distance_next = True
+
+            #Exits first loop when it reaches the first empty line
+            #Consumes any empty lines before the first full reading
+            while line == '':
+                if ser.in_waiting > 0:
+                    line = ser.readline().decode('utf-8').strip()
 
             while self.running:
-                while line != "done":
+                # Read distance
+                distance_mm = float(line)
+
+                while line != '':
+                    if ser.in_waiting > 0:
+                        line = ser.readline().decode('utf-8').strip()
+
+                # Consume empty line
+                while line == '':
+                    if ser.in_waiting > 0:
+                        line = ser.readline().decode('utf-8').strip()
+
+                # Read temperature data until empty line
+                while line != "":
                     values = [float(x) for x in line[:-1].split(",")]
                     temp_array.append(values)
                     
@@ -102,14 +124,16 @@ class GetDataSerialWorker(QThread):
                         line = ser.readline().decode('utf-8').strip()
 
                 
-                data = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())), np.array(temp_array), random.randint(50, 100) / 10.0]
+                data = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())), np.array(temp_array), distance_mm / 10.0]
                 self.update_data_frame(data)
                 self.store_data(self.df)
-                self.data_received.emit(self.df.iloc[-1:])
+                data_to_send = pd.DataFrame(self.df.iloc[-1:])
+                self.data_received.emit(data_to_send)
                 temp_array.clear()
 
-                if ser.in_waiting > 0:
-                        line = ser.readline().decode('utf-8').strip()
+                while line == "":
+                    if ser.in_waiting > 0:
+                            line = ser.readline().decode('utf-8').strip()
 
             ser.close()
 
@@ -120,11 +144,3 @@ class GetDataSerialWorker(QThread):
         self.running = False
         self.wait()
 
-# generator = TestDataSerialWorker()
-# temp_data = generator.generate_temp_frame()
-# print(temp_data)  # For demonstration, replace with appropriate visualization or storage logic
-# time.sleep(1)
-# for _ in range(5):  # Generate 5 frames
-#     temp_data = generator.generate_temp_frame(temp_data)
-#     print(temp_data)  # For demonstration, replace with appropriate visualization or storage logic
-#     time.sleep(1)
