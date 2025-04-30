@@ -1,11 +1,6 @@
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-import numpy as np
-import pyqtgraph as pg
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
 import pandas as pd
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QPixmap
 import MainWindow
 
 class Ui_AlertWindow(object):
@@ -78,6 +73,7 @@ class Ui_AlertWindow(object):
 
     def stopSystem(self):
         self.main_window.stopMotor()
+        MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, self.metric, [-999999, 999999])
         self.main_window.set_alert_state(False)
         self.alert_window.hide()
         

@@ -34,7 +34,7 @@ class DistanceDialogWithRectangle(QtWidgets.QDialog):
 class Ui_DistanceDetails(object):
     def setupUi(self, DistanceDetails, main_window, df: pd.DataFrame):
         DistanceDetails.setObjectName("DistanceDetails")
-        DistanceDetails.resize(1120, 850)
+        DistanceDetails.resize(1210, 850)
 
         self.main_window = main_window
         self.df = df
@@ -46,17 +46,18 @@ class Ui_DistanceDetails(object):
         self.Distance_dialog_close_button.clicked.connect(self.closeWindow)
 
         self.tableView = QtWidgets.QTableWidget(DistanceDetails)
-        self.tableView.setGeometry(QtCore.QRect(810, 15, 275, 380))
+        self.tableView.setGeometry(QtCore.QRect(800, 90, 385, 550))
         self.tableView.setObjectName("Distance_table")
         self.last_time = 0
-        self.tableView.setColumnCount(2)
-        self.tableView.setHorizontalHeaderLabels(["Time (s)", "Distance (mm)"])
+        self.tableView.setColumnCount(3)
+        self.tableView.setHorizontalHeaderLabels(["Time (s)", "Distance (mm)", "ROC (cm/s)"])
         
         for index, row in df.iterrows():
             time = row["Time"].split(' ')[-1]
             self.tableView.setRowCount(self.tableView.rowCount() + 1)
             self.tableView.setItem(self.tableView.rowCount() - 1, 0, QtWidgets.QTableWidgetItem(str(time)))
             self.tableView.setItem(self.tableView.rowCount() - 1, 1, QtWidgets.QTableWidgetItem(str(row['Distance'])))
+            self.tableView.setItem(self.tableView.rowCount() - 1, 2, QtWidgets.QTableWidgetItem(str(round(row['Distance ROC'], 3))))
 
         self.detailed_distance_chart = pg.PlotWidget(DistanceDetails)
         self.detailed_distance_chart.setBackground("w")
@@ -91,16 +92,8 @@ class Ui_DistanceDetails(object):
         self.ROC_graph.showGrid(x=True, y=True)
         self.ROC_graph.setYRange(-2, 2)
 
-        self.ROC = [0]
-        self.seconds = self.df["Exact Time"].tolist()
-
-        if (len(self.distance) > 1):
-            for i in range(1, len(self.distance)):
-                delta_distance = self.distance[i] - self.distance[i-1]
-                delta_time = timedelta(seconds=self.seconds[i] - self.seconds[i-1]).total_seconds()
-                self.ROC.append(delta_distance / delta_time) 
-
-        self.last_time = 0
+        self.ROC = self.df["Distance ROC"].tolist()
+        
 
         self.ROC_line = self.ROC_graph.plot(
             self.time,
@@ -133,7 +126,7 @@ class Ui_DistanceDetails(object):
 
     def retranslateUi(self, DistanceDetails):
         _translate = QtCore.QCoreApplication.translate
-        DistanceDetails.setWindowTitle(_translate("DistanceDetails", "Dialog"))
+        DistanceDetails.setWindowTitle(_translate("DistanceDetails", "Distance Menu"))
         self.Distance_dialog_close_button.setText(_translate("DistanceDetails", "Close"))
         self.cutoff_input_button.setText(_translate("DistanceDetails", "Set Cutoff Value"))
 
@@ -148,24 +141,17 @@ class Ui_DistanceDetails(object):
         self.DistanceDetails.show()
 
     def update_data(self, data: pd.DataFrame):
-        self.update_chart_data(data["Distance"].iloc[-1], data["Exact Time"].iloc[-1])
-        self.update_table_data(data["Time"].iloc[-1].split(' ')[-1], data["Distance"].iloc[-1])
+        self.update_chart_data(data["Distance"].iloc[-1], data["Distance ROC"].iloc[-1])
+        self.update_table_data(data["Time"].iloc[-1].split(' ')[-1], data["Distance"].iloc[-1], data["Distance ROC"].iloc[-1])
 
-
-    def update_chart_data(self, distance_value, exact_time):
-        self.seconds.append(exact_time)
+    def update_chart_data(self, distance_value, roc_value):
         self.distance.append(distance_value)
+        self.ROC.append(roc_value)
 
         if (len(self.time) == 0):
             self.time.append(1)
         else:
             self.time.append(self.time[-1] + 1)
-
-        if (len(self.distance) > 1):
-            delta_distance = self.distance[-1] - self.distance[-2]
-            delta_time = timedelta(seconds=self.seconds[-1] - self.seconds[-2]).total_seconds()
-            self.ROC.append(delta_distance / delta_time) 
-
 
         #Move least recent reading off graph
         if (len(self.time) > 50):
@@ -225,10 +211,11 @@ class Ui_DistanceDetails(object):
         return (min_range, max_range)
 
 
-    def update_table_data(self, time, distance):
+    def update_table_data(self, time, distance, roc):
         self.tableView.setRowCount(self.tableView.rowCount() + 1)
         self.tableView.setItem(self.tableView.rowCount() - 1, 0, QtWidgets.QTableWidgetItem(str(time)))
         self.tableView.setItem(self.tableView.rowCount() - 1, 1, QtWidgets.QTableWidgetItem(str(distance)))
+        self.tableView.setItem(self.tableView.rowCount() - 1, 2, QtWidgets.QTableWidgetItem(str(round(roc, 3))))
 
     def new_cutoff_value(self):
         self.main_window.setDistanceCutoffValue(self.cutoff_input.text())

@@ -17,7 +17,21 @@ from PyQt5.QtGui import QStandardItem, QStandardItemModel
 import pandas as pd
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QPixmap
+import TempSectionSelector
+from PyQt5.QtWidgets import QMessageBox
 
+class TempWindowWithRectangle(QtWidgets.QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        pen = QtGui.QPen(QtCore.Qt.GlobalColor.darkGray, 1)
+        painter.setPen(pen)
+        painter.drawRect(50, 710, 630, 70)  # Cutoff value rectangle
+        painter.drawRect(548, 33, 553, 303)  # Temperature bar chart rectangle
+        painter.drawRect(28, 68, 495, 403)  # Temperature map rectangle
 
 class Ui_TempDetails(object):
 
@@ -45,12 +59,22 @@ class Ui_TempDetails(object):
         self.cutoff_input.setObjectName("cutoff_input")
         
         self.cutoff_input_button = QtWidgets.QPushButton(TempDetails)
-        self.cutoff_input_button.setGeometry(QtCore.QRect(500, 720, 200, 50))
+        self.cutoff_input_button.setGeometry(QtCore.QRect(450, 720, 200, 50))
         self.cutoff_input_button.setObjectName("cutoff_input_button")
         self.cutoff_input_button.clicked.connect(self.new_cutoff_value)
 
+        self.open_selection_window_button = QtWidgets.QPushButton(TempDetails)
+        self.open_selection_window_button.setGeometry(QtCore.QRect(150, 510, 275, 50))
+        self.open_selection_window_button.setObjectName("open_selection_button")
+        self.open_selection_window_button.clicked.connect(self.open_selection_window)
+
+        self.see_temp_section_alert_button = QtWidgets.QPushButton(TempDetails)
+        self.see_temp_section_alert_button.setGeometry(QtCore.QRect(150, 580, 275, 50))
+        self.see_temp_section_alert_button.setObjectName("see_temp_section_alert_button")
+        self.see_temp_section_alert_button.clicked.connect(self.open_temp_section_alert_window)
+
         self.tableView = QtWidgets.QTableWidget(TempDetails)
-        self.tableView.setGeometry(QtCore.QRect(700, 320, 410, 340))
+        self.tableView.setGeometry(QtCore.QRect(610, 360, 410, 340))
         self.tableView.setObjectName("temp_table")
         self.last_time = 0
         self.tableView.setColumnCount(3)
@@ -60,7 +84,7 @@ class Ui_TempDetails(object):
         self.bar_chart = pg.BarGraphItem(x=range(1, 8), height=[30,30,30,30,30,30,30], width=0.5, brush="r")
         
         self.temp_bar_chart.addItem(self.bar_chart)
-        self.temp_bar_chart.setGeometry(QtCore.QRect(150, 20, 750, 280))
+        self.temp_bar_chart.setGeometry(QtCore.QRect(550, 35, 550, 300))
         self.temp_bar_chart.setObjectName("temp_bar_chart")
         styles = {"color": "black", "font-size": "10px"}
         self.temp_bar_chart.setLabel("left", "Temperature (°C)", **styles)
@@ -68,7 +92,7 @@ class Ui_TempDetails(object):
         self.temp_bar_chart.setYRange(25,35)
 
         self.temp_map_display = QtWidgets.QLabel(TempDetails)
-        self.temp_map_display.setGeometry(QtCore.QRect(50, 320, 550, 380))
+        self.temp_map_display.setGeometry(QtCore.QRect(30, 70, 550, 400))
         self.temp_map_display.setObjectName("temp_map_display")
         self.temp_image = QPixmap("heatmap.png")
         self.scaled_temp_image = self.temp_image.scaled(550, 400, QtCore.Qt.KeepAspectRatio)
@@ -83,10 +107,12 @@ class Ui_TempDetails(object):
 
     def retranslateUi(self, TempDetails):
         _translate = QtCore.QCoreApplication.translate
-        TempDetails.setWindowTitle(_translate("TempDetails", "Dialog"))
+        TempDetails.setWindowTitle(_translate("TempDetails", "Temperature Menu"))
         self.temp_dialog_close_button.setText(_translate("TempDetails", "Close"))
         self.cutoff_input_button.setText(_translate("TempDetails", "Change Cutoff"))
         self.cutoff_input.setText(_translate("TempDetails", "0"))
+        self.open_selection_window_button.setText(_translate("TempDetails", "Open Selection Window"))
+        self.see_temp_section_alert_button.setText(_translate("TempDetails", "Temp Distribution Alert Details"))
 
 
     def closeWindow(self):
@@ -94,7 +120,7 @@ class Ui_TempDetails(object):
 
     def __init__(self, main_window, df: pd.DataFrame):
         super().__init__()
-        self.TempDetails = QtWidgets.QDialog()
+        self.TempDetails = TempWindowWithRectangle()
         self.setupUi(self.TempDetails, main_window, df)
         
         self.TempDetails.show()
@@ -104,7 +130,7 @@ class Ui_TempDetails(object):
         time = data["Time"].iloc[-1].split(' ')[-1]
 
         #Update chart data
-        bar_heights = data.iloc[-1].tolist()[5:12]
+        bar_heights = data.iloc[-1].tolist()[6:13]
         self.update_table_data(time, round(data["Max Temp"].iloc[-1], 2), round(data["Avg Temp"].iloc[-1], 2))
 
         #Redraw chart
@@ -125,6 +151,22 @@ class Ui_TempDetails(object):
         self.tableView.setItem(self.tableView.rowCount() - 1, 1, QtWidgets.QTableWidgetItem(str(max_temp)))
         self.tableView.setItem(self.tableView.rowCount() - 1, 2, QtWidgets.QTableWidgetItem(str(avg_temp)))
 
+    def open_selection_window(self):
+        self.temp_section_selector = TempSectionSelector.TemperatureSectionSelector(self.temp_image, self.main_window)
+        self.temp_section_selector.show()
+
+    def open_temp_section_alert_window(self):
+        if self.main_window.get_temp_section_alert():
+            self.temp_section_alert = TempSectionSelector.TemperatureSectionSelector(QPixmap("temp_section_alert.png"), self.main_window, alert=True)
+            self.temp_section_alert.show()
+        else:
+            self.temp_section_msg = QMessageBox()
+            self.temp_section_msg.setWindowTitle("No Alert")
+
+            self.temp_section_msg.setText(f"There is no active temperature distribution alert.")
+
+            self.temp_section_msg.setStandardButtons(QMessageBox.Ok)
+            self.temp_section_msg.exec_()
 
     def new_cutoff_value(self):
         self.main_window.setTempCutoffValue(self.cutoff_input.text())
