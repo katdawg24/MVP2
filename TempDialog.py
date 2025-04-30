@@ -111,7 +111,7 @@ class Ui_TempDetails(object):
         self.temp_dialog_close_button.setText(_translate("TempDetails", "Close"))
         self.cutoff_input_button.setText(_translate("TempDetails", "Change Cutoff"))
         self.cutoff_input.setText(_translate("TempDetails", "0"))
-        self.open_selection_window_button.setText(_translate("TempDetails", "Open Selection Window"))
+        self.open_selection_window_button.setText(_translate("TempDetails", "Edit Focused Section"))
         self.see_temp_section_alert_button.setText(_translate("TempDetails", "Temp Distribution Alert Details"))
 
 

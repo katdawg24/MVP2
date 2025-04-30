@@ -73,7 +73,8 @@ class Ui_AlertWindow(object):
 
     def stopSystem(self):
         self.main_window.stopMotor()
-        MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, self.metric, [-999999, 999999])
+        MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, "temp", [-999999, 999999])
+        MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, "distance", [-999999, 999999])
         self.main_window.set_alert_state(False)
         self.alert_window.hide()
         
@@ -95,7 +96,8 @@ class Ui_AlertWindow(object):
         
 
     def turnCalibrationOff(self):
-        MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, self.metric, [-999999, 999999])
+        MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, "temp", [-999999, 999999])
+        MainWindow.Ui_MainWindow.manually_calibrate(self.main_window, "distance", [-999999, 999999])
         self.main_window.set_alert_state(False)
         self.alert_window.hide()
         
