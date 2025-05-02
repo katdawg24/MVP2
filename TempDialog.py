@@ -64,14 +64,26 @@ class Ui_TempDetails(object):
         self.cutoff_input_button.clicked.connect(self.new_cutoff_value)
 
         self.open_selection_window_button = QtWidgets.QPushButton(TempDetails)
-        self.open_selection_window_button.setGeometry(QtCore.QRect(150, 510, 275, 50))
+        self.open_selection_window_button.setGeometry(QtCore.QRect(150, 490, 275, 50))
         self.open_selection_window_button.setObjectName("open_selection_button")
         self.open_selection_window_button.clicked.connect(self.open_selection_window)
 
         self.see_temp_section_alert_button = QtWidgets.QPushButton(TempDetails)
-        self.see_temp_section_alert_button.setGeometry(QtCore.QRect(150, 580, 275, 50))
+        self.see_temp_section_alert_button.setGeometry(QtCore.QRect(150, 560, 275, 50))
         self.see_temp_section_alert_button.setObjectName("see_temp_section_alert_button")
         self.see_temp_section_alert_button.clicked.connect(self.open_temp_section_alert_window)
+
+        self.temp_distribution_input = QtWidgets.QLineEdit(TempDetails)
+        self.temp_distribution_input.setValidator(QtGui.QDoubleValidator(0.0,99.99,2))
+        self.temp_distribution_input.setText(str(self.main_window.getTempDistributionThreshold()))
+        self.temp_distribution_input.setGeometry(QtCore.QRect(120, 630, 80, 50))
+        self.temp_distribution_input.setObjectName("temp_distribution_input")
+        self.temp_distribution_input.setValidator(QtGui.QDoubleValidator(0.0,10.0,1))
+
+        self.temp_distribution_input_button = QtWidgets.QPushButton(TempDetails)
+        self.temp_distribution_input_button.setGeometry(QtCore.QRect(210, 630, 230, 50))
+        self.temp_distribution_input_button.setObjectName("temp_distribution_input_button")
+        self.temp_distribution_input_button.clicked.connect(self.new_temp_distribution_value)
 
         self.tableView = QtWidgets.QTableWidget(TempDetails)
         self.tableView.setGeometry(QtCore.QRect(610, 360, 410, 340))
@@ -113,7 +125,7 @@ class Ui_TempDetails(object):
         self.cutoff_input.setText(_translate("TempDetails", "0"))
         self.open_selection_window_button.setText(_translate("TempDetails", "Edit Focused Section"))
         self.see_temp_section_alert_button.setText(_translate("TempDetails", "Temp Distribution Alert Details"))
-
+        self.temp_distribution_input_button.setText(_translate("TempDetails", "Change Distribution Alert Threshold"))
 
     def closeWindow(self):
         self.TempDetails.hide()
@@ -170,6 +182,9 @@ class Ui_TempDetails(object):
 
     def new_cutoff_value(self):
         self.main_window.setTempCutoffValue(self.cutoff_input.text())
+
+    def new_temp_distribution_value(self):
+        self.main_window.setTempDistributionThreshold(self.temp_distribution_input.text())
     
 
 if __name__ == "__main__":

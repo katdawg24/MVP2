@@ -215,6 +215,7 @@ class Ui_MainWindow(object):
         self.temp_sections = []
         self.temp_section_alert = False
         self.cold_blocks = []
+        self.temp_distribution_threshold = 3.0
 
         self.receive_serial_thread = receiveSerialThread
         self.receive_serial_thread.start()
@@ -366,13 +367,13 @@ class Ui_MainWindow(object):
                         self.alert_open = True
                         self.alert_window = CalibrationAlertWindow.Ui_AlertWindow(self, "temp", self.temp_calibration_range, max_temp)
                         
-                    elif (float(self.df["Distance"].iloc[-1]) < self.distance_calibration_range[0] or 
-                        float(self.df["Distance"].iloc[-1]) > self.distance_calibration_range[1]):
+                    elif ((float(self.df["Distance"].iloc[-1]) < self.distance_calibration_range[0] or 
+                        float(self.df["Distance"].iloc[-1]) > self.distance_calibration_range[1]) and self.temp_sections == []):
                         self.alert_open = True
                         self.alert_window = CalibrationAlertWindow.Ui_AlertWindow(self, "distance", self.distance_calibration_range, float(self.df["Distance"].iloc[-1]))
 
                     elif (self.temp_sections != [] and self.temp_section_alert == False):
-                        self.cold_blocks = self.find_cold_spots_in_grid(self.df["Temp"].iloc[-1], self.temp_sections)
+                        self.cold_blocks = self.find_cold_spots_in_grid(self.df["Temp"].iloc[-1], self.temp_sections, self.temp_distribution_threshold)
                         
             self.is_calibration_check_running = False
 
@@ -448,7 +449,7 @@ class Ui_MainWindow(object):
 
         return alert
     
-    def find_cold_spots_in_grid(self, temp_array, selected_blocks, threshold = 5.0):
+    def find_cold_spots_in_grid(self, temp_array, selected_blocks, threshold = 3.0):
     
         # Finds significantly colder blocks in a selected subset of an 8x8 grid
         # over a 32x24 temperature array.
@@ -591,7 +592,6 @@ class Ui_MainWindow(object):
 
     def setTempSections(self, sections: list):
         self.temp_sections = sections
-        print(self.temp_sections)
 
     def get_cold_blocks(self):
         return self.cold_blocks
@@ -605,6 +605,13 @@ class Ui_MainWindow(object):
     def clearTempSectionsAlert(self):
         self.temp_section_alert = False
         self.temp_menu_button.setStyleSheet("background-color: white; color: black;")
+
+    def getTempDistributionThreshold(self):
+        return self.temp_distribution_threshold
+    
+    def setTempDistributionThreshold(self, threshold):
+        self.temp_distribution_threshold = threshold
+        print(self.temp_distribution_threshold)
 
     def __init__(self, receiveSerialThread, arduino_port):
         self.app = QtWidgets.QApplication.instance()
