@@ -1,9 +1,9 @@
+import serial.tools.list_ports
 import MainWindow
-import SerialWorker
 import pandas as pd
 
-import TestDataSerialWorker
 import GetDataSerialWorker
+
 
 class Main(object):
     
@@ -11,29 +11,29 @@ class Main(object):
         self.temp_cutoff = 100000
         self.distance_cutoff = 100000
 
-    ## for serial connection
-    def setUp(self):
-        self.df = pd.DataFrame(columns= ["Time", "Temp", "Distance"])
-
-        self.receive_serial_thread = SerialWorker.SerialWorker('COM5', 9600)
-        self.receive_serial_thread.start()
-        self.receive_serial_thread.data_received.connect(self.processData)
-
-        self.send_serial_thread = SerialWorker.SerialWorker('COM3', 9600)
-
-        self.main_window = MainWindow.Ui_MainWindow(self.receive_serial_thread, self.send_serial_thread)
-
     ## for testing without serial connection
-    def setUpTest(self):
-        
+    def setUp(self):
 
-        self.receive_serial_thread = TestDataSerialWorker.TestDataSerialWorker()
-        #self.receive_serial_thread = GetDataSerialWorker.GetDataSerialWorker()
+        try:
+            ports = list(serial.tools.list_ports.comports())
 
-        self.main_window = MainWindow.Ui_MainWindow(self.receive_serial_thread)
+            for port in ports:
+                if port.description.startswith("Arduino"):
+                    arduino_port = port.device
+                else:
+                    teensy_port = port.device
+
+        except Exception as e:
+            print(f"Could not start application: {e}")
+
+        print("Arduino port:" + arduino_port)
+        print("Teensy port:" + teensy_port)
         
+        self.receive_serial_thread = GetDataSerialWorker.GetDataSerialWorker(teensy_port)
+
+        self.main_window = MainWindow.Ui_MainWindow(self.receive_serial_thread, arduino_port)
+
 
 if __name__ == "__main__":
     main = Main()
-    # main.setUp()
-    main.setUpTest()
+    main.setUp()

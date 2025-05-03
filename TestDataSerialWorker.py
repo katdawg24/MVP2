@@ -89,14 +89,19 @@ class TestDataSerialWorker(QThread):
         self.update_data_frame(data)
         self.store_data(self.df)
         self.data_received.emit(self.df)
+        runs = 1
         time.sleep(1)
 
         while (self.running):
             temp_data = self.generate_temp_frame(temp_data)
-            data = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())), temp_data, random.randint(50, 100) / 10.0]
+            if (runs == 23):
+                data = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())), temp_data, 12.0]
+            else:
+                data = [time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())), temp_data, random.randint(50, 100) / 10.0]
             self.update_data_frame(data)
             self.store_data(self.df)
             self.data_received.emit(self.df.iloc[-1:])
+            runs += 1
             time.sleep(1)
             
 

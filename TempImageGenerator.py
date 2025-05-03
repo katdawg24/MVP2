@@ -8,7 +8,7 @@ def generate_heatmap(temperature_array, output_filename="heatmap.png"):
         raise ValueError("Input array must have shape (24, 32)")
     
     # Determine the actual min and max temperature values
-    min_temp = 10
+    min_temp = 20
     max_temp = 50
     
     # Normalize the temperature values to range [0, 255]
@@ -35,7 +35,7 @@ def generate_heatmap(temperature_array, output_filename="heatmap.png"):
     # Add a colorbar (legend) with correct temperature values
     cbar = plt.colorbar(plt.cm.ScalarMappable(cmap='inferno', norm=plt.Normalize(vmin=min_temp, vmax=max_temp)), ax=ax, fraction=0.046, pad=0.04)
     cbar.set_label("Temperature (°C)")
-    tick_values = np.linspace(min_temp, max_temp, num=5)
+    tick_values = np.linspace(max_temp, min_temp, num=5)
     cbar.set_ticks(tick_values)
     cbar.set_ticklabels([str(int(round(tick))) for tick in tick_values])
     
@@ -44,7 +44,7 @@ def generate_heatmap(temperature_array, output_filename="heatmap.png"):
 
     plt.close(fig)
     
-
-# Example usage
-temp_data = np.random.uniform(20, 100, (24, 32))  # Generate random temperatures between 20°C and 100°C
-generate_heatmap(temp_data)
+if __name__ == "__main__":
+    # Example usage
+    temp_array = np.random.uniform(10, 50, (24, 32))
+    generate_heatmap(temp_array)

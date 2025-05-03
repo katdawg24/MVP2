@@ -17,10 +17,23 @@ from PyQt5.QtGui import QStandardItem, QStandardItemModel
 import pandas as pd
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QPixmap
+import TempSectionSelector
+from PyQt5.QtWidgets import QMessageBox
 
+class TempWindowWithRectangle(QtWidgets.QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        pen = QtGui.QPen(QtCore.Qt.GlobalColor.darkGray, 1)
+        painter.setPen(pen)
+        painter.drawRect(50, 710, 630, 70)  # Cutoff value rectangle
+        painter.drawRect(548, 33, 553, 303)  # Temperature bar chart rectangle
+        painter.drawRect(28, 68, 495, 403)  # Temperature map rectangle
 
 class Ui_TempDetails(object):
-    
 
     def setupUi(self, TempDetails, mainWindow, df: pd.DataFrame):
         self.main_window = mainWindow
@@ -30,7 +43,7 @@ class Ui_TempDetails(object):
         self.df = df
 
         self.temp_dialog_close_button = QtWidgets.QPushButton(TempDetails)
-        self.temp_dialog_close_button.setGeometry(QtCore.QRect(1000, 700, 121, 31))
+        self.temp_dialog_close_button.setGeometry(QtCore.QRect(1000, 750, 121, 31))
         self.temp_dialog_close_button.setObjectName("temp_dialog_close_button")
         self.temp_dialog_close_button.clicked.connect(self.closeWindow)
 
@@ -41,94 +54,85 @@ class Ui_TempDetails(object):
 
         self.cutoff_input = QtWidgets.QLineEdit(TempDetails)
         self.cutoff_input.setValidator(QtGui.QDoubleValidator(0.0,99.99,2))
-        self.cutoff_input.setText("35.00")
+        self.cutoff_input.setText(str(self.main_window.temp_cutoff))
         self.cutoff_input.setGeometry(QtCore.QRect(70, 720, 250, 50))
         self.cutoff_input.setObjectName("cutoff_input")
         
         self.cutoff_input_button = QtWidgets.QPushButton(TempDetails)
-        self.cutoff_input_button.setGeometry(QtCore.QRect(500, 720, 200, 50))
+        self.cutoff_input_button.setGeometry(QtCore.QRect(450, 720, 200, 50))
         self.cutoff_input_button.setObjectName("cutoff_input_button")
         self.cutoff_input_button.clicked.connect(self.new_cutoff_value)
 
+        self.open_selection_window_button = QtWidgets.QPushButton(TempDetails)
+        self.open_selection_window_button.setGeometry(QtCore.QRect(150, 490, 275, 50))
+        self.open_selection_window_button.setObjectName("open_selection_button")
+        self.open_selection_window_button.clicked.connect(self.open_selection_window)
+
+        self.see_temp_section_alert_button = QtWidgets.QPushButton(TempDetails)
+        self.see_temp_section_alert_button.setGeometry(QtCore.QRect(150, 560, 275, 50))
+        self.see_temp_section_alert_button.setObjectName("see_temp_section_alert_button")
+        self.see_temp_section_alert_button.clicked.connect(self.open_temp_section_alert_window)
+
+        self.temp_distribution_input = QtWidgets.QLineEdit(TempDetails)
+        self.temp_distribution_input.setValidator(QtGui.QDoubleValidator(0.0,99.99,2))
+        self.temp_distribution_input.setText(str(self.main_window.getTempDistributionThreshold()))
+        self.temp_distribution_input.setGeometry(QtCore.QRect(120, 630, 80, 50))
+        self.temp_distribution_input.setObjectName("temp_distribution_input")
+        self.temp_distribution_input.setValidator(QtGui.QDoubleValidator(0.0,10.0,1))
+
+        self.temp_distribution_input_button = QtWidgets.QPushButton(TempDetails)
+        self.temp_distribution_input_button.setGeometry(QtCore.QRect(210, 630, 230, 50))
+        self.temp_distribution_input_button.setObjectName("temp_distribution_input_button")
+        self.temp_distribution_input_button.clicked.connect(self.new_temp_distribution_value)
+
         self.tableView = QtWidgets.QTableWidget(TempDetails)
-        self.tableView.setGeometry(QtCore.QRect(770, 20, 340, 340))
+        self.tableView.setGeometry(QtCore.QRect(610, 360, 410, 340))
         self.tableView.setObjectName("temp_table")
         self.last_time = 0
         self.tableView.setColumnCount(3)
         self.tableView.setHorizontalHeaderLabels(["Time (s)", "Max Temp (C)", "Avg Temp (C)"])
-        # Create a model for the table
-        # self.table_model = QStandardItemModel()
-        # self.table_model.setHorizontalHeaderLabels(["Time", "Temperature"])
-        # self.tableView.setModel(self.table_model)
-
-        # self.detailed_temp_chart = pg.PlotWidget(TempDetails)
-        # self.detailed_temp_chart.setBackground("w")
-        # pen = pg.mkPen(color=(255,0,0))
-        # self.detailed_temp_chart.setTitle("Temperature vs Time", color="k", size="15pt")
-        # styles = {"color": "red", "font-size": "10px"}
-        # self.detailed_temp_chart.setLabel("left", "Temperature (°C)", **styles)
-        # self.detailed_temp_chart.setLabel("bottom", "Time (min)", **styles)
-        # #self.detailed_temp_chart.addLegend()
-        # self.detailed_temp_chart.showGrid(x=True, y=True)
-        # self.detailed_temp_chart.setYRange(24, 32)
-        # # self.detailed_temp_chart = QtWidgets.QScrollArea(TempDetails)
-        # self.detailed_temp_chart.setGeometry(QtCore.QRect(20, 20, 720, 380))
-        # self.detailed_temp_chart.setObjectName("detailed_temp_chart")
 
         self.temp_bar_chart = pg.PlotWidget(TempDetails)
         self.bar_chart = pg.BarGraphItem(x=range(1, 8), height=[30,30,30,30,30,30,30], width=0.5, brush="r")
         
         self.temp_bar_chart.addItem(self.bar_chart)
-        self.temp_bar_chart.setGeometry(QtCore.QRect(20, 20, 720, 280))
+        self.temp_bar_chart.setGeometry(QtCore.QRect(550, 35, 550, 300))
         self.temp_bar_chart.setObjectName("temp_bar_chart")
         styles = {"color": "black", "font-size": "10px"}
         self.temp_bar_chart.setLabel("left", "Temperature (°C)", **styles)
         self.temp_bar_chart.setBackground("w")
-        self.temp_bar_chart.setYRange(28,32)
+        self.temp_bar_chart.setYRange(25,35)
 
         self.temp_map_display = QtWidgets.QLabel(TempDetails)
-        self.temp_map_display.setGeometry(QtCore.QRect(50, 320, 550, 380))
+        self.temp_map_display.setGeometry(QtCore.QRect(30, 70, 550, 400))
         self.temp_map_display.setObjectName("temp_map_display")
         self.temp_image = QPixmap("heatmap.png")
         self.scaled_temp_image = self.temp_image.scaled(550, 400, QtCore.Qt.KeepAspectRatio)
         self.temp_map_display.setPixmap(self.scaled_temp_image)
-        
-        # self.time = df['Time'].tolist()
-        # self.temperature = df['Temp'].tolist()
-        
-        # self.temp_line = self.detailed_temp_chart.plot(
-        #     self.time,
-        #     self.temperature,
-        #     name="Temperature Sensor",
-        #     pen=pen
-        # )
 
         for index, row in self.df.iterrows():
             time = row["Time"].split(' ')[-1]
             self.update_table_data(time, round(row["Max Temp"], 2), round(row["Avg Temp"], 2))
-
-        # self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        # self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 699, 349))
-        # self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
-        # self.detailed_temp_chart.setWidget(self.scrollAreaWidgetContents)
 
         self.retranslateUi(TempDetails)
         QtCore.QMetaObject.connectSlotsByName(TempDetails)
 
     def retranslateUi(self, TempDetails):
         _translate = QtCore.QCoreApplication.translate
-        TempDetails.setWindowTitle(_translate("TempDetails", "Dialog"))
+        TempDetails.setWindowTitle(_translate("TempDetails", "Temperature Menu"))
         self.temp_dialog_close_button.setText(_translate("TempDetails", "Close"))
         self.cutoff_input_button.setText(_translate("TempDetails", "Change Cutoff"))
-        self.cutoff_input.setText(_translate("TempDetails", str(self.main_window.getCutoffValues()[0])))
-
+        self.cutoff_input.setText(_translate("TempDetails", "0"))
+        self.open_selection_window_button.setText(_translate("TempDetails", "Edit Focused Section"))
+        self.see_temp_section_alert_button.setText(_translate("TempDetails", "Temp Distribution Alert Details"))
+        self.temp_distribution_input_button.setText(_translate("TempDetails", "Change Distribution Alert Threshold"))
 
     def closeWindow(self):
         self.TempDetails.hide()
 
     def __init__(self, main_window, df: pd.DataFrame):
         super().__init__()
-        self.TempDetails = QtWidgets.QDialog()
+        self.TempDetails = TempWindowWithRectangle()
         self.setupUi(self.TempDetails, main_window, df)
         
         self.TempDetails.show()
@@ -138,7 +142,7 @@ class Ui_TempDetails(object):
         time = data["Time"].iloc[-1].split(' ')[-1]
 
         #Update chart data
-        bar_heights = data.iloc[-1].tolist()[5:12]
+        bar_heights = data.iloc[-1].tolist()[6:13]
         self.update_table_data(time, round(data["Max Temp"].iloc[-1], 2), round(data["Avg Temp"].iloc[-1], 2))
 
         #Redraw chart
@@ -159,9 +163,28 @@ class Ui_TempDetails(object):
         self.tableView.setItem(self.tableView.rowCount() - 1, 1, QtWidgets.QTableWidgetItem(str(max_temp)))
         self.tableView.setItem(self.tableView.rowCount() - 1, 2, QtWidgets.QTableWidgetItem(str(avg_temp)))
 
+    def open_selection_window(self):
+        self.temp_section_selector = TempSectionSelector.TemperatureSectionSelector(self.temp_image, self.main_window)
+        self.temp_section_selector.show()
+
+    def open_temp_section_alert_window(self):
+        if self.main_window.get_temp_section_alert():
+            self.temp_section_alert = TempSectionSelector.TemperatureSectionSelector(QPixmap("temp_section_alert.png"), self.main_window, alert=True)
+            self.temp_section_alert.show()
+        else:
+            self.temp_section_msg = QMessageBox()
+            self.temp_section_msg.setWindowTitle("No Alert")
+
+            self.temp_section_msg.setText(f"There is no active temperature distribution alert.")
+
+            self.temp_section_msg.setStandardButtons(QMessageBox.Ok)
+            self.temp_section_msg.exec_()
 
     def new_cutoff_value(self):
         self.main_window.setTempCutoffValue(self.cutoff_input.text())
+
+    def new_temp_distribution_value(self):
+        self.main_window.setTempDistributionThreshold(self.temp_distribution_input.text())
     
 
 if __name__ == "__main__":
@@ -169,7 +192,5 @@ if __name__ == "__main__":
     TempDetails = QtWidgets.QDialog()
     emptydf = pd.DataFrame(columns= ["Time", "Temp", "Distance"])
     ui = Ui_TempDetails(emptydf)
-    
-
 
     sys.exit(app.exec_())
